@@ -1,10 +1,10 @@
 // Keeps the page and the phone-number library on the device so the site opens without internet.
-const VERSION = 'wa-open-v3';
+const VERSION = 'wa-open-v4';
 const LIB = 'https://cdn.jsdelivr.net/npm/libphonenumber-js@1.13.14/bundle/libphonenumber-max.js';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './icon-maskable.png', LIB];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(VERSION).then((cache) => cache.addAll(CORE)).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(VERSION).then((cache) => cache.addAll(CORE.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {
@@ -36,7 +36,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       caches.open(VERSION).then(async (cache) => {
         const cached = await cache.match('./index.html');
-        const fresh = fetch(req).then((res) => {
+        const fresh = fetch(req, { cache: 'no-cache' }).then((res) => {
           if (res.ok) cache.put('./index.html', res.clone());
           return res;
         }).catch(() => cached);
