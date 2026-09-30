@@ -174,23 +174,6 @@
   }
   .alt:hover { border-color: var(--brand); color: var(--brand); }
 
-  .divider { height: 1px; background: var(--line); margin: 18px -18px 14px; }
-  .who-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
-  .actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-  .chip-btn {
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-    min-height: 64px; padding: 8px;
-    border: 1px solid var(--line); background: var(--surface-2);
-    border-radius: 14px; cursor: pointer; text-decoration: none;
-    font-size: 13px; font-weight: 500;
-    transition: border-color .15s, transform .1s;
-  }
-  .chip-btn svg { width: 20px; height: 20px; color: var(--brand); }
-  .chip-btn:hover { border-color: var(--brand); }
-  .chip-btn:active { transform: scale(.97); }
-  .chip-btn.disabled { opacity: .45; pointer-events: none; }
-  .note { margin: 10px 2px 0; font-size: 12.5px; color: var(--muted); }
-
   /* Recent */
   .recent { margin-top: 22px; }
   .recent-head { display: flex; justify-content: space-between; align-items: center; margin: 0 6px 8px; }
@@ -284,26 +267,6 @@
     <div class="national" id="national"></div>
     <div class="status" id="status"></div>
     <div class="alts" id="alts" hidden></div>
-
-    <div id="lookup">
-      <div class="divider"></div>
-      <div class="who-title">מי זה?</div>
-      <div class="actions">
-        <a id="tc" class="chip-btn" target="_blank" rel="noopener">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
-          Truecaller
-        </a>
-        <a id="gg" class="chip-btn" target="_blank" rel="noopener">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-          חיפוש בגוגל
-        </a>
-        <button id="copy" class="chip-btn" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>
-          העתק מספר
-        </button>
-      </div>
-      <p class="note" id="lookupNote">בתוך השיחה, לחיצה על המספר למעלה מציגה את השם שהאדם בחר לעצמו, אם הגדרות הפרטיות שלו מאפשרות.</p>
-    </div>
   </section>
 
   <section class="recent" id="recentWrap" hidden>
@@ -338,7 +301,6 @@
     num: $('num'), clear: $('clear'), paste: $('paste'),
     result: $('result'), flag: $('flag'), country: $('country'), type: $('type'), cc: $('cc'),
     formatted: $('formatted'), national: $('national'), status: $('status'), alts: $('alts'),
-    lookup: $('lookup'), tc: $('tc'), gg: $('gg'), copy: $('copy'), lookupNote: $('lookupNote'),
     wa: $('wa'), deskLinks: $('deskLinks'), waWeb: $('waWeb'), waDesk: $('waDesk'),
     recentWrap: $('recentWrap'), recent: $('recent'), clearRecent: $('clearRecent'),
     toast: $('toast'), offlinePill: $('offlinePill'),
@@ -438,22 +400,6 @@
     return `https://wa.me/${d}`;
   }
 
-  // Truecaller has no link that opens the app on a number. On iPhone we copy the number and open the app.
-  function truecallerHref(p) {
-    if (isIOS) return 'truecaller://';
-    return `https://www.truecaller.com/search/${(p.country || 'il').toLowerCase()}/${p.nationalNumber}`;
-  }
-
-  function googleHref(p) {
-    const forms = [...new Set([
-      p.number,
-      p.formatInternational(),
-      p.formatNational(),
-      p.formatNational().replace(/\D/g, ''),
-    ])];
-    return 'https://www.google.com/search?q=' + encodeURIComponent(forms.map((f) => `"${f}"`).join(' OR '));
-  }
-
   // ---------- Render ----------
   function setStatus(kind, text) {
     const icons = { ok: '✓', warn: '!', err: '✕' };
@@ -485,7 +431,6 @@
       el.national.textContent = '';
       setStatus('err', 'לא הצלחתי לזהות מספר. בדוק את הספרות');
       el.alts.hidden = true;
-      el.lookup.hidden = true;
       el.cc.value = override;
       updateCta();
       return;
@@ -520,10 +465,6 @@
       el.alts.hidden = true;
     }
 
-    el.lookup.hidden = false;
-    el.tc.href = truecallerHref(p);
-    el.gg.href = googleHref(p);
-    updateOnline();
     updateCta();
   }
 
@@ -548,11 +489,6 @@
   function updateOnline() {
     const online = navigator.onLine;
     el.offlinePill.hidden = online;
-    el.tc.classList.toggle('disabled', !online);
-    el.gg.classList.toggle('disabled', !online);
-    el.lookupNote.textContent = online
-      ? 'בתוך השיחה, לחיצה על המספר למעלה מציגה את השם שהאדם בחר לעצמו, אם הגדרות הפרטיות שלו מאפשרות.'
-      : 'אין חיבור לאינטרנט, אז חיפוש השם לא זמין. פתיחת וואטסאפ עדיין עובדת.';
     if (current) el.wa.href = waHref(current);
   }
 
@@ -604,11 +540,11 @@
 
   // ---------- UI helpers ----------
   let toastTimer;
-  function toast(msg, ms = 1800) {
+  function toast(msg) {
     el.toast.textContent = msg;
     el.toast.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.toast.classList.remove('show'), ms);
+    toastTimer = setTimeout(() => el.toast.classList.remove('show'), 1800);
   }
 
   function setInput(text) {
@@ -659,19 +595,6 @@
     });
   el.cc.onchange = () => { override = el.cc.value; render(); };
 
-  el.copy.onclick = async () => {
-    if (!current) return;
-    try { await navigator.clipboard.writeText(current.number); toast('המספר הועתק'); }
-    catch (e) { toast(current.number); }
-  };
-
-  if (isIOS) el.tc.removeAttribute('target');
-  el.tc.addEventListener('click', () => {
-    if (!current) return;
-    try { navigator.clipboard.writeText(current.number); } catch (e) {}
-    if (isIOS) toast('המספר הועתק. הדבק אותו בחיפוש של Truecaller', 4000);
-  });
-
   el.wa.addEventListener('click', () => { if (current) addRecent(current); });
   el.waWeb.addEventListener('click', () => { if (current) addRecent(current); });
   el.waDesk.addEventListener('click', () => { if (current) addRecent(current); });
@@ -704,7 +627,7 @@
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 
-  window.__waOpen = { normalize, analyze, extract, waHref, truecallerHref, googleHref };
+  window.__waOpen = { normalize, analyze, extract, waHref };
 })();
 </script>
 </body>
