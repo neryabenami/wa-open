@@ -1,5 +1,5 @@
 // Keeps the page and the phone-number library on the device so the site opens without internet.
-const VERSION = 'wa-open-v1';
+const VERSION = 'wa-open-v2';
 const LIB = 'https://cdn.jsdelivr.net/npm/libphonenumber-js@1.13.14/bundle/libphonenumber-max.js';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './icon-maskable.png', LIB];
 
@@ -23,7 +23,15 @@ self.addEventListener('fetch', (event) => {
   const cacheable = sameOrigin || url.href === LIB || /fonts\.(googleapis|gstatic)\.com$/.test(url.hostname);
   if (!cacheable) return;
 
-  // Pages: serve the saved copy at once, refresh it in the background
+  // Other pages on the site: network first, saved copy as fallback
+  const scopePath = new URL(self.registration.scope).pathname;
+  const isHome = url.pathname === scopePath || url.pathname === scopePath + 'index.html';
+  if (req.mode === 'navigate' && !isHome) {
+    event.respondWith(fetch(req).catch(() => caches.match(req, { ignoreSearch: true })));
+    return;
+  }
+
+  // Home page: serve the saved copy at once, refresh it in the background
   if (req.mode === 'navigate') {
     event.respondWith(
       caches.open(VERSION).then(async (cache) => {
