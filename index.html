@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>פתח בוואטסאפ</title>
+<meta name="description" content="מדביקים מספר טלפון בכל פורמט ופותחים שיחת וואטסאפ בלי לשמור איש קשר">
+<meta name="theme-color" content="#008069" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b141a" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="פתח בוואטסאפ">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/libphonenumber-js@1.13.14/bundle/libphonenumber-max.js"></script>
+<style>
+  :root {
+    --bg: #eef2f0;
+    --surface: #ffffff;
+    --surface-2: #f5f7f6;
+    --text: #111b21;
+    --muted: #667781;
+    --line: #e3e8e6;
+    --brand: #008069;
+    --brand-strong: #006d59;
+    --brand-soft: #e3f5ef;
+    --on-brand: #ffffff;
+    --ok: #0a8a5a;
+    --warn: #b26a00;
+    --err: #c62828;
+    --shadow: 0 1px 2px rgba(17,27,33,.05), 0 8px 24px rgba(17,27,33,.06);
+    --radius: 20px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b141a;
+      --surface: #111b21;
+      --surface-2: #1a252c;
+      --text: #e9edef;
+      --muted: #8696a0;
+      --line: #23313a;
+      --brand: #00a884;
+      --brand-strong: #06cf9c;
+      --brand-soft: #0f2e27;
+      --on-brand: #0b141a;
+      --ok: #3ad29f;
+      --warn: #f0b04a;
+      --err: #ff6b6b;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Heebo", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 100dvh;
+  }
+  [hidden] { display: none !important; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: inherit; }
+
+  .app {
+    max-width: 460px;
+    margin: 0 auto;
+    padding: max(20px, env(safe-area-inset-top)) 16px 170px;
+  }
+
+  /* Header */
+  .brand { display: flex; align-items: center; gap: 14px; margin: 12px 4px 22px; }
+  .brand img { width: 48px; height: 48px; border-radius: 14px; box-shadow: var(--shadow); }
+  .brand h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.2px; }
+  .brand p { margin: 0; color: var(--muted); font-size: 14px; }
+
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px;
+  }
+  .card + .card { margin-top: 14px; }
+
+  /* Input */
+  .label { display: block; font-size: 14px; font-weight: 500; color: var(--muted); margin: 0 4px 8px; }
+  .field {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface-2);
+    border: 2px solid transparent;
+    border-radius: 16px;
+    padding: 6px 6px 6px 10px;
+    transition: border-color .15s, background .15s;
+  }
+  .field:focus-within { border-color: var(--brand); background: var(--surface); }
+  .field input {
+    flex: 1; min-width: 0;
+    border: 0; outline: 0; background: transparent;
+    font-size: 22px; font-weight: 500; letter-spacing: .5px;
+    padding: 8px 6px;
+    text-align: left;
+  }
+  .field input::placeholder { color: var(--muted); opacity: .55; font-weight: 400; }
+  .icon-btn {
+    border: 0; background: transparent; color: var(--muted);
+    width: 36px; height: 36px; border-radius: 50%;
+    display: grid; place-items: center; cursor: pointer; flex: none;
+  }
+  .icon-btn:hover { background: var(--line); }
+  .paste-btn {
+    flex: none; border: 0; cursor: pointer;
+    background: var(--brand-soft); color: var(--brand);
+    font-weight: 700; font-size: 15px;
+    padding: 10px 16px; border-radius: 12px;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: transform .1s, filter .15s;
+  }
+  .paste-btn:hover { filter: brightness(.97); }
+  .paste-btn:active { transform: scale(.97); }
+  .hint { margin: 10px 4px 0; font-size: 13px; color: var(--muted); }
+
+  /* Result */
+  .result { animation: rise .25s ease-out; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .country-row { display: flex; align-items: center; gap: 12px; }
+  .flag {
+    width: 44px; height: 44px; border-radius: 12px; flex: none;
+    background: var(--surface-2);
+    display: grid; place-items: center;
+    font-size: 26px; line-height: 1;
+    font-family: "Twemoji Country Flags", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  }
+  .flag.code { font-size: 14px; font-weight: 700; color: var(--muted); font-family: inherit; }
+  .country-meta { flex: 1; min-width: 0; }
+  .country { font-weight: 700; font-size: 16px; }
+  .type { font-size: 13px; color: var(--muted); }
+  .cc-select {
+    appearance: none; -webkit-appearance: none;
+    border: 1px solid var(--line); background: var(--surface);
+    border-radius: 10px; padding: 6px 12px 6px 28px; font-size: 13px; color: var(--muted);
+    cursor: pointer; max-width: 130px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238696a0' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: left 8px center; background-size: 14px;
+  }
+  .number {
+    margin: 16px 0 4px;
+    font-size: 30px; font-weight: 700; letter-spacing: .3px;
+    text-align: center; direction: ltr;
+    word-break: break-all;
+  }
+  .national { text-align: center; color: var(--muted); font-size: 14px; direction: ltr; }
+  .status {
+    margin: 12px auto 0; width: fit-content;
+    font-size: 13px; font-weight: 500;
+    padding: 4px 12px; border-radius: 999px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .status.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
+  .status.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
+  .status.err { color: var(--err); background: color-mix(in srgb, var(--err) 12%, transparent); }
+
+  .alts { margin-top: 14px; text-align: center; }
+  .alts-title { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .alt {
+    border: 1px dashed var(--line); background: transparent; cursor: pointer;
+    border-radius: 999px; padding: 6px 12px; margin: 3px; font-size: 14px;
+    direction: ltr;
+  }
+  .alt:hover { border-color: var(--brand); color: var(--brand); }
+
+  .divider { height: 1px; background: var(--line); margin: 18px -18px 14px; }
+  .who-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
+  .actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .chip-btn {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    min-height: 64px; padding: 8px;
+    border: 1px solid var(--line); background: var(--surface-2);
+    border-radius: 14px; cursor: pointer; text-decoration: none;
+    font-size: 13px; font-weight: 500;
+    transition: border-color .15s, transform .1s;
+  }
+  .chip-btn svg { width: 20px; height: 20px; color: var(--brand); }
+  .chip-btn:hover { border-color: var(--brand); }
+  .chip-btn:active { transform: scale(.97); }
+  .chip-btn.disabled { opacity: .45; pointer-events: none; }
+  .note { margin: 10px 2px 0; font-size: 12.5px; color: var(--muted); }
+
+  /* Recent */
+  .recent { margin-top: 22px; }
+  .recent-head { display: flex; justify-content: space-between; align-items: center; margin: 0 6px 8px; }
+  .recent-head span { font-size: 14px; font-weight: 700; color: var(--muted); }
+  .link-btn { border: 0; background: none; color: var(--muted); font-size: 13px; cursor: pointer; padding: 4px; }
+  .link-btn:hover { color: var(--text); }
+  .recent ul { list-style: none; margin: 0; padding: 0; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  .recent li + li { border-top: 1px solid var(--line); }
+  .recent button {
+    width: 100%; border: 0; background: none; cursor: pointer;
+    display: flex; align-items: center; gap: 12px; padding: 12px 16px; text-align: right;
+  }
+  .recent button:hover { background: var(--surface-2); }
+  .recent .r-flag { font-size: 20px; width: 28px; text-align: center; }
+  .recent .r-num { flex: 1; direction: ltr; text-align: right; font-weight: 500; }
+  .recent .r-time { font-size: 12px; color: var(--muted); }
+
+  /* CTA */
+  .cta-bar {
+    position: fixed; inset: auto 0 0 0;
+    padding: 14px 16px max(16px, env(safe-area-inset-bottom));
+    background: linear-gradient(to top, var(--bg) 70%, transparent);
+  }
+  .cta-inner { max-width: 460px; margin: 0 auto; }
+  .cta {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%; min-height: 58px; border-radius: 18px;
+    background: var(--brand); color: var(--on-brand);
+    font-size: 18px; font-weight: 700; text-decoration: none;
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--brand) 35%, transparent);
+    transition: transform .1s, background .15s, opacity .15s;
+  }
+  .cta:hover { background: var(--brand-strong); }
+  .cta:active { transform: scale(.98); }
+  .cta svg { width: 24px; height: 24px; }
+  .cta[aria-disabled="true"] { opacity: .35; pointer-events: none; box-shadow: none; }
+  .desk-links { text-align: center; margin-top: 8px; font-size: 13px; color: var(--muted); }
+  .desk-links a { color: var(--muted); }
+  .desk-links a:hover { color: var(--brand); }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 110px; transform: translate(-50%, 20px);
+    background: var(--text); color: var(--bg);
+    padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 500;
+    opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .offline-pill {
+    display: inline-block; margin-inline-start: 8px; vertical-align: middle;
+    font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 999px;
+    background: var(--surface-2); color: var(--muted); border: 1px solid var(--line);
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="brand">
+    <img src="icon.svg" alt="">
+    <div>
+      <h1>פתח בוואטסאפ <span class="offline-pill" id="offlinePill" hidden>ללא רשת</span></h1>
+      <p>בלי לשמור איש קשר</p>
+    </div>
+  </header>
+
+  <section class="card">
+    <label class="label" for="num">מספר טלפון</label>
+    <div class="field">
+      <input id="num" type="tel" inputmode="tel" dir="ltr" autocomplete="off" spellcheck="false" placeholder="052-123-4567">
+      <button id="clear" class="icon-btn" type="button" aria-label="נקה" hidden>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <button id="paste" class="paste-btn" type="button">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+        הדבק
+      </button>
+    </div>
+    <p class="hint">ישראלי, אמריקאי, בריטי ועוד. עם קידומת או בלי, עם רווחים או מקפים, הכול עובד.</p>
+  </section>
+
+  <section class="card result" id="result" hidden>
+    <div class="country-row">
+      <div class="flag" id="flag"></div>
+      <div class="country-meta">
+        <div class="country" id="country"></div>
+        <div class="type" id="type"></div>
+      </div>
+      <select id="cc" class="cc-select" aria-label="שנה מדינה"></select>
+    </div>
+    <div class="number" id="formatted"></div>
+    <div class="national" id="national"></div>
+    <div class="status" id="status"></div>
+    <div class="alts" id="alts" hidden></div>
+
+    <div id="lookup">
+      <div class="divider"></div>
+      <div class="who-title">מי זה?</div>
+      <div class="actions">
+        <a id="tc" class="chip-btn" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+          Truecaller
+        </a>
+        <a id="gg" class="chip-btn" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          חיפוש בגוגל
+        </a>
+        <button id="copy" class="chip-btn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>
+          העתק מספר
+        </button>
+      </div>
+      <p class="note" id="lookupNote">בתוך השיחה, לחיצה על המספר למעלה מציגה את השם שהאדם בחר לעצמו, אם הגדרות הפרטיות שלו מאפשרות.</p>
+    </div>
+  </section>
+
+  <section class="recent" id="recentWrap" hidden>
+    <div class="recent-head">
+      <span>אחרונים</span>
+      <button id="clearRecent" class="link-btn" type="button">נקה הכול</button>
+    </div>
+    <ul id="recent"></ul>
+  </section>
+</main>
+
+<div class="cta-bar">
+  <div class="cta-inner">
+    <a id="wa" class="cta" aria-disabled="true" role="button">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5C6.8 2.5 2.6 6.4 2.6 11.3c0 1.9.6 3.6 1.7 5.1L3.2 21l4.5-1.4c1.3.6 2.8.9 4.3.9 5.2 0 9.4-3.9 9.4-8.8S17.2 2.5 12 2.5zm4.9 12.1c-.2.6-1.2 1.2-1.7 1.2-.4.1-1 .1-1.6-.1-.4-.1-.9-.3-1.5-.6-2.6-1.1-4.3-3.8-4.4-3.9-.1-.2-1-1.4-1-2.7s.7-1.9 1-2.2c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 1.9c.1.1.1.3 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.1.3.6 1 1.3 1.6.9.8 1.7 1.1 1.9 1.2.3.1.4.1.6-.1l.8-1c.2-.3.4-.2.6-.1l1.8.9c.3.1.4.2.5.3.1.2.1.7-.1 1.2z"/></svg>
+      <span>פתח צ'אט בוואטסאפ</span>
+    </a>
+    <div class="desk-links" id="deskLinks" hidden>
+      או פתח ב־<a id="waWeb" target="_blank" rel="noopener">WhatsApp Web</a>
+      · <a id="waDesk">אפליקציית המחשב</a>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  const LP = window.libphonenumber;
+  const $ = (id) => document.getElementById(id);
+  const el = {
+    num: $('num'), clear: $('clear'), paste: $('paste'),
+    result: $('result'), flag: $('flag'), country: $('country'), type: $('type'), cc: $('cc'),
+    formatted: $('formatted'), national: $('national'), status: $('status'), alts: $('alts'),
+    lookup: $('lookup'), tc: $('tc'), gg: $('gg'), copy: $('copy'), lookupNote: $('lookupNote'),
+    wa: $('wa'), deskLinks: $('deskLinks'), waWeb: $('waWeb'), waDesk: $('waDesk'),
+    recentWrap: $('recentWrap'), recent: $('recent'), clearRecent: $('clearRecent'),
+    toast: $('toast'), offlinePill: $('offlinePill'),
+  };
+
+  const ua = navigator.userAgent;
+  const isAndroid = /Android/i.test(ua);
+  const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
+  const isMobile = isAndroid || isIOS;
+  const isWindows = /Windows/i.test(ua);
+  // Windows can't render flag emoji, so show the country code instead
+  const canFlag = !isWindows;
+
+  const COUNTRIES = ['IL', 'US', 'GB', 'CA', 'AU', 'FR', 'DE', 'ES', 'IT', 'NL', 'RU', 'UA', 'PL', 'TR', 'AE', 'IN', 'BR', 'ET', 'AR', 'ZA'];
+  const TYPES = {
+    MOBILE: 'נייד', FIXED_LINE: 'קווי', FIXED_LINE_OR_MOBILE: 'נייד או קווי',
+    TOLL_FREE: 'חיוג חינם', VOIP: 'VoIP', PREMIUM_RATE: 'חיוג בתשלום', PERSONAL_NUMBER: 'מספר אישי', UAN: 'מספר עסקי',
+  };
+
+  let regionName = (cc) => cc;
+  try { const dn = new Intl.DisplayNames(['he'], { type: 'region' }); regionName = (cc) => dn.of(cc); } catch (e) {}
+  const flagOf = (cc) => cc ? String.fromCodePoint(...[...cc].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65)) : '🌐';
+  const setFlag = (node, cc) => {
+    if (canFlag) { node.textContent = flagOf(cc); node.classList.remove('code'); }
+    else { node.textContent = cc || '?'; node.classList.add('code'); }
+  };
+
+  let override = '';
+  let current = null;
+
+  // ---------- Parsing ----------
+  function normalize(raw) {
+    let s = String(raw || '')
+      .replace(/[٠-٩]/g, (d) => d.charCodeAt(0) - 0x660)
+      .replace(/[۰-۹]/g, (d) => d.charCodeAt(0) - 0x6f0)
+      .replace(/[０-９]/g, (d) => d.charCodeAt(0) - 0xff10)
+      .replace(/＋/g, '+');
+    s = s.trim();
+    const plus = /^\+|^00/.test(s.replace(/[^\d+]/g, ''));
+    let d = s.replace(/\D/g, '');
+    if (!plus) return d;
+    if (s.replace(/[^\d+]/g, '').startsWith('00')) d = d.slice(2);
+    return '+' + d;
+  }
+
+  // Pull a phone number out of a longer text (shared message, "tel:" link, etc.)
+  function extract(text) {
+    const t = String(text || '');
+    if (!/[A-Za-z֐-׿:]/.test(t)) return t.trim();
+    try {
+      const found = LP.findPhoneNumbersInText(t, 'IL');
+      if (found.length) return found[0].number.number;
+    } catch (e) {}
+    const runs = t.match(/\+?[\d\s().-]{7,}/g);
+    return runs ? runs.sort((a, b) => b.length - a.length)[0].trim() : t.trim();
+  }
+
+  function tryParse(str, cc) {
+    try { return LP.parsePhoneNumberFromString(str, cc) || null; } catch (e) { return null; }
+  }
+
+  function analyze(n) {
+    const list = [];
+    const add = (p) => { if (p && !list.some((x) => x.number === p.number)) list.push(p); };
+    const d = n.replace('+', '');
+    if (!d) return null;
+
+    if (override) {
+      const intl = n.startsWith('+') ? tryParse(n) : null;
+      add(tryParse(intl ? intl.nationalNumber : d, override));
+    } else if (n.startsWith('+')) {
+      add(tryParse(n));
+    } else {
+      if (/^972\d{8,9}$/.test(d)) add(tryParse('+' + d));
+      if (/^44\d{9,10}$/.test(d)) add(tryParse('+' + d));
+      if (/^1\d{10}$/.test(d)) add(tryParse('+' + d));
+      if (d.startsWith('0')) { add(tryParse(d, 'IL')); add(tryParse(d, 'GB')); }
+      if (/^[2-9]\d{9}$/.test(d)) add(tryParse(d, 'US'));
+      add(tryParse(d, 'IL'));
+      if (d.length >= 10) add(tryParse('+' + d));
+    }
+    const valid = list.filter((p) => p.isValid());
+    if (valid.length) return { best: valid[0], alts: valid.slice(1), valid: true };
+    const possible = list.find((p) => p.isPossible());
+    return possible ? { best: possible, alts: [], valid: false } : { best: null, alts: [], valid: false };
+  }
+
+  // ---------- Links ----------
+  const digitsOf = (p) => p.number.replace('+', '');
+
+  function waHref(p) {
+    const d = digitsOf(p);
+    if (isAndroid) {
+      return `intent://send?phone=${d}#Intent;scheme=whatsapp;S.browser_fallback_url=${encodeURIComponent('https://wa.me/' + d)};end`;
+    }
+    if (isIOS && !navigator.onLine) return `whatsapp://send?phone=${d}`;
+    return `https://wa.me/${d}`;
+  }
+
+  function truecallerHref(p) {
+    return `https://www.truecaller.com/search/${(p.country || 'il').toLowerCase()}/${p.nationalNumber}`;
+  }
+
+  function googleHref(p) {
+    const forms = [...new Set([
+      p.number,
+      p.formatInternational(),
+      p.formatNational(),
+      p.formatNational().replace(/\D/g, ''),
+    ])];
+    return 'https://www.google.com/search?q=' + encodeURIComponent(forms.map((f) => `"${f}"`).join(' OR '));
+  }
+
+  // ---------- Render ----------
+  function setStatus(kind, text) {
+    const icons = { ok: '✓', warn: '!', err: '✕' };
+    el.status.className = 'status ' + kind;
+    el.status.textContent = `${icons[kind]}  ${text}`;
+  }
+
+  function render() {
+    const raw = el.num.value;
+    el.clear.hidden = !raw;
+    const n = normalize(raw);
+
+    if (!n.replace('+', '')) {
+      el.result.hidden = true;
+      current = null;
+      updateCta();
+      return;
+    }
+
+    const res = analyze(n);
+    el.result.hidden = false;
+    current = res && res.best ? res.best : null;
+
+    if (!current) {
+      setFlag(el.flag, '');
+      el.country.textContent = override ? regionName(override) : 'לא זוהה';
+      el.type.textContent = '';
+      el.formatted.textContent = n;
+      el.national.textContent = '';
+      setStatus('err', 'לא הצלחתי לזהות מספר. בדוק את הספרות');
+      el.alts.hidden = true;
+      el.lookup.hidden = true;
+      el.cc.value = override;
+      updateCta();
+      return;
+    }
+
+    const p = current;
+    setFlag(el.flag, p.country);
+    el.country.textContent = p.country ? regionName(p.country) : `קידומת +${p.countryCallingCode}`;
+    const t = p.getType ? p.getType() : undefined;
+    el.type.textContent = TYPES[t] || '';
+    el.formatted.textContent = p.formatInternational();
+    el.national.textContent = p.country ? p.formatNational() : '';
+    el.cc.value = override;
+
+    if (!res.valid) setStatus('warn', 'המספר לא נראה תקין לגמרי. כדאי לבדוק');
+    else if (t === 'FIXED_LINE') setStatus('warn', 'מספר קווי. ייתכן שאין לו וואטסאפ');
+    else setStatus('ok', 'מספר תקין');
+
+    // Other valid interpretations
+    if (res.alts.length) {
+      el.alts.hidden = false;
+      el.alts.innerHTML = '<div class="alts-title">אולי התכוונת ל:</div>';
+      res.alts.slice(0, 3).forEach((a) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'alt';
+        b.textContent = `${canFlag ? flagOf(a.country) : a.country} ${a.formatInternational()}`;
+        b.onclick = () => { override = a.country || ''; render(); };
+        el.alts.appendChild(b);
+      });
+    } else {
+      el.alts.hidden = true;
+    }
+
+    el.lookup.hidden = false;
+    el.tc.href = truecallerHref(p);
+    el.gg.href = googleHref(p);
+    updateOnline();
+    updateCta();
+  }
+
+  function updateCta() {
+    if (current) {
+      el.wa.href = waHref(current);
+      el.wa.setAttribute('aria-disabled', 'false');
+      if (!isMobile) {
+        el.wa.target = '_blank';
+        el.wa.rel = 'noopener';
+        el.deskLinks.hidden = false;
+        el.waWeb.href = `https://web.whatsapp.com/send?phone=${digitsOf(current)}`;
+        el.waDesk.href = `whatsapp://send?phone=${digitsOf(current)}`;
+      }
+    } else {
+      el.wa.removeAttribute('href');
+      el.wa.setAttribute('aria-disabled', 'true');
+      el.deskLinks.hidden = true;
+    }
+  }
+
+  function updateOnline() {
+    const online = navigator.onLine;
+    el.offlinePill.hidden = online;
+    el.tc.classList.toggle('disabled', !online);
+    el.gg.classList.toggle('disabled', !online);
+    el.lookupNote.textContent = online
+      ? 'בתוך השיחה, לחיצה על המספר למעלה מציגה את השם שהאדם בחר לעצמו, אם הגדרות הפרטיות שלו מאפשרות.'
+      : 'אין חיבור לאינטרנט, אז חיפוש השם לא זמין. פתיחת וואטסאפ עדיין עובדת.';
+    if (current) el.wa.href = waHref(current);
+  }
+
+  // ---------- Recent ----------
+  const RKEY = 'wa-open:recent';
+  function loadRecent() {
+    try { return JSON.parse(localStorage.getItem(RKEY)) || []; } catch (e) { return []; }
+  }
+  function saveRecent(list) {
+    try { localStorage.setItem(RKEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function addRecent(p) {
+    const list = loadRecent().filter((r) => r.n !== p.number);
+    list.unshift({ n: p.number, c: p.country || '', t: Date.now() });
+    saveRecent(list.slice(0, 6));
+    renderRecent();
+  }
+  function timeAgo(ts) {
+    const m = Math.round((Date.now() - ts) / 60000);
+    if (m < 1) return 'עכשיו';
+    if (m < 60) return `לפני ${m} דק׳`;
+    const h = Math.round(m / 60);
+    if (h < 24) return h === 1 ? 'לפני שעה' : `לפני ${h} שעות`;
+    const d = Math.round(h / 24);
+    return d === 1 ? 'אתמול' : `לפני ${d} ימים`;
+  }
+  function renderRecent() {
+    const list = loadRecent();
+    el.recentWrap.hidden = !list.length;
+    el.recent.innerHTML = '';
+    list.forEach((r) => {
+      const p = tryParse(r.n);
+      const li = document.createElement('li');
+      const b = document.createElement('button');
+      b.type = 'button';
+      const f = document.createElement('span'); f.className = 'r-flag';
+      f.textContent = canFlag ? flagOf(r.c) : r.c;
+      if (!canFlag) f.style.fontSize = '12px';
+      const num = document.createElement('span'); num.className = 'r-num';
+      num.textContent = p ? p.formatInternational() : r.n;
+      const tm = document.createElement('span'); tm.className = 'r-time';
+      tm.textContent = timeAgo(r.t);
+      b.append(f, num, tm);
+      b.onclick = () => { override = ''; el.num.value = r.n; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+      li.appendChild(b);
+      el.recent.appendChild(li);
+    });
+  }
+
+  // ---------- UI helpers ----------
+  let toastTimer;
+  function toast(msg) {
+    el.toast.textContent = msg;
+    el.toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.toast.classList.remove('show'), 1800);
+  }
+
+  function setInput(text) {
+    override = '';
+    el.num.value = extract(text);
+    render();
+  }
+
+  // ---------- Events ----------
+  el.num.addEventListener('input', render);
+  el.num.addEventListener('paste', (e) => {
+    const text = (e.clipboardData || window.clipboardData)?.getData('text');
+    if (text == null) return;
+    e.preventDefault();
+    setInput(text);
+  });
+  el.num.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && current) { e.preventDefault(); el.wa.click(); }
+  });
+
+  el.clear.onclick = () => { override = ''; el.num.value = ''; render(); el.num.focus(); };
+
+  if (navigator.clipboard && navigator.clipboard.readText) {
+    el.paste.onclick = async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (!text.trim()) { toast('הלוח ריק'); return; }
+        setInput(text);
+      } catch (e) {
+        el.num.focus();
+        toast('לחץ לחיצה ארוכה על השדה ובחר "הדבק"');
+      }
+    };
+  } else {
+    el.paste.onclick = () => { el.num.focus(); toast('לחץ לחיצה ארוכה על השדה ובחר "הדבק"'); };
+  }
+
+  // Country selector
+  const autoOpt = new Option('שנה מדינה', '');
+  el.cc.add(autoOpt);
+  COUNTRIES
+    .map((cc) => ({ cc, name: regionName(cc) }))
+    .sort((a, b) => (a.cc === 'IL' ? -1 : b.cc === 'IL' ? 1 : a.name.localeCompare(b.name, 'he')))
+    .forEach(({ cc, name }) => {
+      let code = '';
+      try { code = ' +' + LP.getCountryCallingCode(cc); } catch (e) {}
+      el.cc.add(new Option(`${canFlag ? flagOf(cc) + ' ' : ''}${name}${code}`, cc));
+    });
+  el.cc.onchange = () => { override = el.cc.value; render(); };
+
+  el.copy.onclick = async () => {
+    if (!current) return;
+    try { await navigator.clipboard.writeText(current.number); toast('המספר הועתק'); }
+    catch (e) { toast(current.number); }
+  };
+
+  el.wa.addEventListener('click', () => { if (current) addRecent(current); });
+  el.waWeb.addEventListener('click', () => { if (current) addRecent(current); });
+  el.waDesk.addEventListener('click', () => { if (current) addRecent(current); });
+
+  el.clearRecent.onclick = () => { saveRecent([]); renderRecent(); };
+
+  window.addEventListener('online', updateOnline);
+  window.addEventListener('offline', updateOnline);
+
+  // ---------- Start ----------
+  if (!LP) {
+    document.querySelector('.hint').textContent = 'לא הצלחתי לטעון את הרכיב שמזהה מספרים. התחבר לאינטרנט ורענן את הדף.';
+    return;
+  }
+
+  // Input from a shared item or a link like ?n=0521234567
+  const params = new URLSearchParams(location.search);
+  const incoming = params.get('n') || [params.get('text'), params.get('title'), params.get('url')].filter(Boolean).join(' ');
+  if (incoming) {
+    setInput(incoming);
+    history.replaceState(null, '', location.pathname);
+  }
+
+  renderRecent();
+  updateOnline();
+  render();
+  if (!isMobile && !incoming) el.num.focus();
+
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  window.__waOpen = { normalize, analyze, extract, waHref, truecallerHref, googleHref };
+})();
+</script>
+</body>
+</html>
