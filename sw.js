@@ -1,5 +1,5 @@
 // Keeps the page and the phone-number library on the device so the site opens without internet.
-const VERSION = 'wa-open-v6';
+const VERSION = 'wa-open-v7';
 const LIB = 'https://cdn.jsdelivr.net/npm/libphonenumber-js@1.13.14/bundle/libphonenumber-max.js';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './icon-maskable.png', LIB];
 
@@ -31,7 +31,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Home page: always try the latest version first, use the saved copy when offline or slow
+  // Home page: open the saved copy instantly and refresh it in the background.
+  // A new version arrives with a new sw.js, and the page reloads itself when it takes over.
   if (req.mode === 'navigate') {
     event.respondWith(
       caches.open(VERSION).then(async (cache) => {
@@ -40,9 +41,11 @@ self.addEventListener('fetch', (event) => {
           if (res.ok) cache.put('./index.html', res.clone());
           return res;
         });
-        if (!cached) return fresh;
-        const timeout = new Promise((resolve) => setTimeout(() => resolve(cached), 4000));
-        return Promise.race([fresh.catch(() => cached), timeout]);
+        if (cached) {
+          event.waitUntil(fresh.catch(() => {}));
+          return cached;
+        }
+        return fresh;
       })
     );
     return;
