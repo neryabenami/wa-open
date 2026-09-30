@@ -438,7 +438,9 @@
     return `https://wa.me/${d}`;
   }
 
+  // Truecaller has no link that opens the app on a number. On iPhone we copy the number and open the app.
   function truecallerHref(p) {
+    if (isIOS) return 'truecaller://';
     return `https://www.truecaller.com/search/${(p.country || 'il').toLowerCase()}/${p.nationalNumber}`;
   }
 
@@ -602,11 +604,11 @@
 
   // ---------- UI helpers ----------
   let toastTimer;
-  function toast(msg) {
+  function toast(msg, ms = 1800) {
     el.toast.textContent = msg;
     el.toast.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.toast.classList.remove('show'), 1800);
+    toastTimer = setTimeout(() => el.toast.classList.remove('show'), ms);
   }
 
   function setInput(text) {
@@ -662,6 +664,13 @@
     try { await navigator.clipboard.writeText(current.number); toast('המספר הועתק'); }
     catch (e) { toast(current.number); }
   };
+
+  if (isIOS) el.tc.removeAttribute('target');
+  el.tc.addEventListener('click', () => {
+    if (!current) return;
+    try { navigator.clipboard.writeText(current.number); } catch (e) {}
+    if (isIOS) toast('המספר הועתק. הדבק אותו בחיפוש של Truecaller', 4000);
+  });
 
   el.wa.addEventListener('click', () => { if (current) addRecent(current); });
   el.waWeb.addEventListener('click', () => { if (current) addRecent(current); });
