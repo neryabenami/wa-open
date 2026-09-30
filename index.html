@@ -629,7 +629,11 @@ window.addEventListener('DOMContentLoaded', () => {
     const hadController = !!navigator.serviceWorker.controller;
     let reloaded = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (hadController && !reloaded) { reloaded = true; location.reload(); }
+      if (!hadController || reloaded) return;
+      reloaded = true;
+      // Keep the typed number across the reload
+      const v = el.num.value.trim();
+      location.replace(location.pathname + (v ? '?n=' + encodeURIComponent(v) : ''));
     });
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }

@@ -1,5 +1,5 @@
 // Keeps the page and the phone-number library on the device so the site opens without internet.
-const VERSION = 'wa-open-v7';
+const VERSION = 'wa-open-v8';
 const LIB = 'https://cdn.jsdelivr.net/npm/libphonenumber-js@1.13.14/bundle/libphonenumber-max.js';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './icon-maskable.png', LIB];
 
