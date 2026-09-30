@@ -624,6 +624,12 @@
   if (!isMobile && !incoming) el.num.focus();
 
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    // When a new version takes over, reload once so the page shows it right away
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (hadController && !reloaded) { reloaded = true; location.reload(); }
+    });
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 
